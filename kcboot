@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from __future__ import print_function
 import argparse
 import sys
 import os
@@ -24,34 +25,34 @@ if not args.list and not args.kernelcache:
 def no0x(x):
     m = re.match(r'(0x)?([a-fA-F0-9]+)$', x)
     if not m:
-        raise Exception, "invalid location: " + x
+        raise Exception("invalid location: " + x)
     return m.group(2).lower()
 
 
 def probe_serial(probe):
     m = re.search('([a-f0-9]+)$', probe, re.IGNORECASE)
     if not m:
-        raise Exception, "bad probe name: " + probe
+        raise Exception("bad probe name: " + probe)
     return m.group(1).lower()
 
 
 def find_probes():
 
-    proc = subprocess.Popen(["astrisctl", "list"], stdout=subprocess.PIPE);
+    proc = subprocess.Popen(["astrisctl", "list"], stdout=subprocess.PIPE)
     (out, err) = proc.communicate()
     if proc.wait() != 0:
-        raise Exception, "astrisctl failed"
+        raise Exception("astrisctl failed")
 
     i = iter(out.splitlines())
     if not i.next().startswith("astrisctl"):
-        raise Exception, "bad output from astrisctl"
+        raise Exception("bad output from astrisctl")
 
     return [x.strip() for x in i if x.strip() != '' and 'astris_gcd_test_serial_queue' not in x]
 
 
 def find_locations_under_probe(serial):
 
-    proc = subprocess.Popen(["ioreg", "-l"], stdout=subprocess.PIPE);
+    proc = subprocess.Popen(["ioreg", "-l"], stdout=subprocess.PIPE)
     i = iter(proc.stdout)
     for line in i:
         m = re.match(r'([ \|]+) \+-o \s* (Kanzi|Chimp|Gorilla|Kong)\@([a-fA-F0-9]+)', line, re.VERBOSE)
@@ -85,7 +86,7 @@ def find_locations_under_probe(serial):
                 yield m.group(1).lower()
 
     if proc.wait() != 0:
-        raise Exception, "ioreg failed"
+        raise Exception("ioreg failed")
 
 
 def find_usbterm_locations():
@@ -98,7 +99,7 @@ def find_usbterm_locations():
         yield m.group(2).lower()
 
     if proc.wait() != 0:
-        raise Exception, "usbterm failed"
+        raise Exception("usbterm failed")
 
 
 def mobdev_list():
@@ -121,7 +122,7 @@ def mobdev_list():
             yield d
 
     if proc.wait() != 0:
-        raise Exception, "mobdev failed"
+        raise Exception("mobdev failed")
 
 
 if args.list:
@@ -132,17 +133,17 @@ if args.list:
 
         locations = set(find_locations_under_probe(probe_serial(probe))).intersection(set(find_usbterm_locations()))
         if len(locations) != 1:
-            print 'Probe = {probe}'.format(probe=probe)
+            print('Probe = {probe}'.format(probe=probe))
             continue
 
         location = locations.pop()
         for dev in devs:
             if dev['location'] == location:
                 dev['probe'] = probe
-                print 'Probe = {probe}, UDID = {udid}, Location = {location}, Name = "{name}"'.format(**dev)
+                print('Probe = {probe}, UDID = {udid}, Location = {location}, Name = "{name}"'.format(**dev))
                 break
         else:
-            print 'Probe = {probe}, Location = {location}'.format(probe=probe, location=location)
+            print('Probe = {probe}, Location = {location}'.format(probe=probe, location=location))
 
     sys.exit(0)
 
@@ -161,9 +162,9 @@ if args.location is None and args.device is not None:
         if m:
             args.location = no0x(m.group(1))
     if args.location is None:
-        raise Exception, "could not find device with name: " + args.device
+        raise Exception("could not find device with name: " + args.device)
     if proc.wait() != 0:
-        raise Exception, "mobdev failed"
+        raise Exception("mobdev failed")
 
 
 if args.location is None and args.udid is not None:
@@ -175,9 +176,9 @@ if args.location is None and args.udid is not None:
         if m:
             args.location = no0x(m.group(1))
     if args.location is None:
-        raise Exception, "could not find device with udid: " + args.udid
+        raise Exception("could not find device with udid: " + args.udid)
     if proc.wait() != 0:
-        raise Exception, "mobdev failed"
+        raise Exception("mobdev failed")
 
 
 
@@ -188,7 +189,7 @@ if args.probe is None and args.location is not None:
             args.probe = probe
             break
     else:
-        raise Exception, "couldn't find probe for location: " + args.location
+        raise Exception("couldn't find probe for location: " + args.location)
 
 
 if args.probe is None:
@@ -196,10 +197,10 @@ if args.probe is None:
     probes = find_probes()
 
     if len(probes) > 1:
-        raise Exception, "multiple probes found, please pick one"
+        raise Exception("multiple probes found, please pick one")
 
     if len(probes) == 0:
-        raise Exception, "no probe found"
+        raise Exception("no probe found")
 
     args.probe = probes.pop()
 
@@ -210,7 +211,7 @@ serial = probe_serial(args.probe)
 def find_serial_port(serial):
     ports = [x for x in os.listdir("/dev/") if x.startswith("cu.") and re.search(serial[:-1], x, re.IGNORECASE)]
     if len(ports) != 1:
-        raise Exception, "couldn't find serial port for probe"
+        raise Exception("couldn't find serial port for probe")
     return "/dev/" + ports.pop()
 
 port = find_serial_port(serial)
@@ -221,13 +222,13 @@ if args.location is None:
     locations = set(find_locations_under_probe(serial)).intersection(set(find_usbterm_locations()))
 
     if len(locations) > 1:
-        raise Exception, "multiple usbterms under one kanzi?"
+        raise Exception("multiple usbterms under one kanzi?")
 
     if len(locations) == 1:
         args.location = locations.pop()
 
     else:
-        print "Can't find usbterm. Rebooting..."
+        print("Can't find usbterm. Rebooting...")
 
         expect = os.path.join(os.path.dirname(sys.argv[0]), "_kcboot_expect")
         cmd = ["expect", expect, args.probe, port]
@@ -246,10 +247,10 @@ if args.location is None:
                 break
 
         if len(locations) > 1:
-            raise Exception, "multiple usbterms under one kanzi?"
+            raise Exception("multiple usbterms under one kanzi?")
 
         if len(locations) < 1:
-            raise Exception, "still couldn't find usbterm"
+            raise Exception("still couldn't find usbterm")
 
         args.location = locations.pop()
 
@@ -259,10 +260,10 @@ expect = os.path.join(os.path.dirname(sys.argv[0]), "_kcboot_expect")
 cmd = ["expect", expect, args.probe, port, args.kernelcache, '0x' + args.location]
 
 if not args.quiet:
-    print "Booting kernelcache at:", args.kernelcache
-    print "             via probe:", args.probe
-    print "        at location id: 0x" + args.location
-    print
+    print("Booting kernelcache at:", args.kernelcache)
+    print("             via probe:", args.probe)
+    print("        at location id: 0x" + args.location)
+    print()
 
 if args.verbose:
     proc = subprocess.Popen(cmd)
@@ -274,8 +275,8 @@ status = proc.wait()
 
 if not args.quiet:
     if args.verbose:
-        print
+        print()
 
-    print "Done." if status==0 else "Failed!"
+    print("Done." if status==0 else "Failed!")
 
 sys.exit(status)
